@@ -1,0 +1,13 @@
+[package]
+name = "radiomaster-tools"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "serial-forwarder"
+path = "src/bin/serial-forwarder.rs"
+
+[dependencies]
+serialport = "4.8.1"
+tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+log = "0.4.29"
