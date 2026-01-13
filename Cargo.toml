@@ -11,6 +11,10 @@ path = "src/bin/serial-forwarder.rs"
 name = "flash"
 path = "src/bin/flash.rs"
 
+[[bin]]
+name = "log"
+path = "src/bin/log.rs"
+
 [dependencies]
 colored = "2.1"
 serialport = "4.8.1"
@@ -24,3 +28,4 @@ futures-util = "0.3.31"
 tokio-util = { version = "0.7", features = ["codec"] }
 espflash = "4.1.0"
 indicatif = "0.17"
+chrono = "0.4"
