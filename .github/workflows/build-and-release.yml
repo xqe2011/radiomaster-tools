@@ -30,7 +30,7 @@ jobs:
           toolchain: stable
 
       - name: Build release binaries
-        run: cargo build --release --all-bins
+        run: cargo build --release --all
 
       - name: Package and zip artifacts
         shell: bash
