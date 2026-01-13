@@ -38,16 +38,13 @@ jobs:
       - name: Build release binaries
         run: cargo build --release --all
 
-      - name: Package and zip artifacts
+      - name: Package and zip artifacts (Linux/macOS)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir -p artifacts/package
 
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/release/flash.exe artifacts/package/flash.exe
-            cp target/release/serial-forwarder.exe artifacts/package/serial-forwarder.exe
-            ARCHIVE_NAME="radiomaster-tools-windows-amd64.zip"
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             cp target/release/flash artifacts/package/flash
             cp target/release/serial-forwarder artifacts/package/serial-forwarder
             ARCHIVE_NAME="radiomaster-tools-macos-amd64.zip"
@@ -60,6 +57,17 @@ jobs:
           cd artifacts
           zip -j "$ARCHIVE_NAME" package/*
           ls -la
+
+      - name: Package and zip artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts\package | Out-Null
+          Copy-Item target\release\flash.exe artifacts\package\flash.exe
+          Copy-Item target\release\serial-forwarder.exe artifacts\package\serial-forwarder.exe
+          $archiveName = "radiomaster-tools-windows-amd64.zip"
+          Compress-Archive -Path "artifacts\package\*" -DestinationPath "artifacts\$archiveName" -Force
+          Get-ChildItem artifacts
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
