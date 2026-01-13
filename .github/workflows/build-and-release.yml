@@ -1,0 +1,119 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Build release binaries
+        run: cargo build --release --all-bins
+
+      - name: Package and zip artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts/package
+
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp target/release/flash.exe artifacts/package/flash.exe
+            cp target/release/serial-forwarder.exe artifacts/package/serial-forwarder.exe
+            ARCHIVE_NAME="radiomaster-tools-windows-amd64.zip"
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            cp target/release/flash artifacts/package/flash
+            cp target/release/serial-forwarder artifacts/package/serial-forwarder
+            ARCHIVE_NAME="radiomaster-tools-macos-amd64.zip"
+          else
+            cp target/release/flash artifacts/package/flash
+            cp target/release/serial-forwarder artifacts/package/serial-forwarder
+            ARCHIVE_NAME="radiomaster-tools-linux-amd64.zip"
+          fi
+
+          cd artifacts
+          zip -j "$ARCHIVE_NAME" package/*
+          ls -la
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-zip
+          path: artifacts/*.zip
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-zip"
+          merge-multiple: true
+          path: dist
+
+      - name: List release artifacts
+        run: ls -la dist
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+            echo "tag=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or update latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Release
+          body: |
+            Latest build from ${{ github.sha }}
+          files: dist/*
+          draft: false
+          prerelease: false
+          make_latest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update versioned release
+        if: steps.check_tag.outputs.is_tag == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.check_tag.outputs.tag }}
+          name: Release ${{ steps.check_tag.outputs.tag }}
+          body: |
+            Release ${{ steps.check_tag.outputs.tag }}
+          files: dist/*
+          draft: false
+          prerelease: false
+          make_latest: false
+          update: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
