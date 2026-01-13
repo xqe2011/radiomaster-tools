@@ -32,7 +32,6 @@ enum FirmwareType {
     FullImage,
 }
 
-const TARGET_VID: u16 = 0x303A;
 const EXPECTED_MAGIC_WORD: u32 = 0xABCD_5432;
 
 // Offsets for detecting and reading esp_app_desc_t in different image types.
@@ -326,7 +325,7 @@ fn select_serial_port() -> io::Result<SerialPortInfo> {
         let filtered: Vec<SerialPortInfo> = ports
             .into_iter()
             .filter_map(|port| match &port.port_type {
-                SerialPortType::UsbPort(usb) if usb.vid == TARGET_VID => Some(port),
+                SerialPortType::UsbPort(_) => Some(port),
                 _ => None,
             })
             .collect();
@@ -334,12 +333,9 @@ fn select_serial_port() -> io::Result<SerialPortInfo> {
         if filtered.is_empty() {
             println!(
                 "{}",
-                format!(
-                    "未找到 VID 为 0x{:04X} 的 USB 串口，正在继续搜索...",
-                    TARGET_VID
-                )
-                .yellow()
-                .bold()
+                "未找到 USB 串口，正在继续搜索..."
+                    .yellow()
+                    .bold()
             );
             std::thread::sleep(Duration::from_secs(2));
             continue;
@@ -347,27 +343,34 @@ fn select_serial_port() -> io::Result<SerialPortInfo> {
 
         if filtered.len() == 1 {
             let only = &filtered[0];
-            println!(
-                "{} {} (PID: 0x{:04X})",
-                "使用唯一可用的串口：".bold().green(),
-                only.port_name,
-                match &only.port_type {
-                    SerialPortType::UsbPort(info) => info.pid,
-                    _ => 0,
-                }
-            );
+            if let SerialPortType::UsbPort(info) = &only.port_type {
+                println!(
+                    "{} {} (VID: 0x{:04X}, PID: 0x{:04X})",
+                    "使用唯一可用的串口：".bold().green(),
+                    only.port_name,
+                    info.vid,
+                    info.pid
+                );
+            } else {
+                println!(
+                    "{} {}",
+                    "使用唯一可用的串口：".bold().green(),
+                    only.port_name
+                );
+            }
             return Ok(only.clone());
         }
 
         println!(
             "{}",
-            format!("可用串口 (VID 0x{:04X}):", TARGET_VID).bold().cyan()
+            "可用 USB 串口:".bold().cyan()
         );
         for (i, port) in filtered.iter().enumerate() {
             if let SerialPortType::UsbPort(info) = &port.port_type {
                 println!(
-                    "{i}: {} (PID: 0x{:04X}, SN: {})",
+                    "{i}: {} (VID: 0x{:04X}, PID: 0x{:04X}, SN: {})",
                     port.port_name,
+                    info.vid,
                     info.pid,
                     info
                         .serial_number
