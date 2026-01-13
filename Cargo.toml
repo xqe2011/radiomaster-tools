@@ -7,7 +7,20 @@ edition = "2021"
 name = "serial-forwarder"
 path = "src/bin/serial-forwarder.rs"
 
+[[bin]]
+name = "flash"
+path = "src/bin/flash.rs"
+
 [dependencies]
+colored = "2.1"
 serialport = "4.8.1"
-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+tokio-serial = "5.4"
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+tokio = { version = "1", features = ["full"] }
 log = "0.4.29"
+env_logger = "0.11"
+mdns = "3.0.0"
+futures-util = "0.3.31"
+tokio-util = { version = "0.7", features = ["codec"] }
+espflash = "4.1.0"
+indicatif = "0.17"
