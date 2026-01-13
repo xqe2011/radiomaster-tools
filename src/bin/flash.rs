@@ -41,6 +41,12 @@ const APP_IMAGE_DESC_OFFSET: usize = 0x20;
 const FULL_IMAGE_APP_DESC_OFFSET: usize = 0x10000 + 0x20;
 
 fn main() -> io::Result<()> {
+    // Enable ANSI color support on Windows consoles (no-op on other platforms).
+    #[cfg(windows)]
+    {
+        let _ = colored::control::set_virtual_terminal(true);
+    }
+
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .format(|buf, record| {
             let level = match record.level() {
