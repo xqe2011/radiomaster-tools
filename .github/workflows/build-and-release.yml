@@ -44,13 +44,17 @@ jobs:
         run: |
           mkdir -p artifacts/package
 
+          # Dynamically copy all release binaries (exclude .d files and other artifacts)
+          for binary in target/release/*; do
+            if [[ -f "$binary" && -x "$binary" && ! "$binary" =~ \.(d|rlib|rmeta)$ ]]; then
+              filename=$(basename "$binary")
+              cp "$binary" "artifacts/package/$filename"
+            fi
+          done
+
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            cp target/release/flash artifacts/package/flash
-            cp target/release/serial-forwarder artifacts/package/serial-forwarder
             ARCHIVE_NAME="radiomaster-tools-macos-amd64.zip"
           else
-            cp target/release/flash artifacts/package/flash
-            cp target/release/serial-forwarder artifacts/package/serial-forwarder
             ARCHIVE_NAME="radiomaster-tools-linux-amd64.zip"
           fi
 
@@ -63,8 +67,12 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts\package | Out-Null
-          Copy-Item target\release\flash.exe artifacts\package\flash.exe
-          Copy-Item target\release\serial-forwarder.exe artifacts\package\serial-forwarder.exe
+          
+          # Dynamically copy all release binaries
+          Get-ChildItem target\release\*.exe | ForEach-Object {
+            Copy-Item $_.FullName -Destination "artifacts\package\$($_.Name)"
+          }
+          
           $archiveName = "radiomaster-tools-windows-amd64.zip"
           Compress-Archive -Path "artifacts\package\*" -DestinationPath "artifacts\$archiveName" -Force
           Get-ChildItem artifacts
