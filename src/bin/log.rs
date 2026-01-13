@@ -30,10 +30,12 @@ fn main() -> io::Result<()> {
     };
 
     // Generate log filename with timestamp
+    // Replace colons in serial number to prevent Windows filename issues
+    let sanitized_serial = serial_number.replace(':', "");
     let now = chrono::Local::now();
     let log_filename = format!(
         "logs_{}_{}.txt",
-        serial_number,
+        sanitized_serial,
         now.format("%Y-%m-%d-%H-%M-%S")
     );
 
